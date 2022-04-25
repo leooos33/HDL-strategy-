@@ -10,6 +10,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {IUniswapV3MintCallback} from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
+// import {IVaultTreasury} from "../interfaces/IVaultTreasury.sol";
 import {SharedEvents} from "../libraries/SharedEvents.sol";
 import {Constants} from "../libraries/Constants.sol";
 
@@ -18,27 +19,25 @@ import "hardhat/console.sol";
 contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback {
     using SafeERC20 for IERC20;
 
-    mapping (address => bool) keepers;
+    mapping(address => bool) keepers;
 
-    constructor(address vaultMath) {
+    constructor() {
         keepers[msg.sender] = true;
-        keepers[vaultMath] = true;
     }
 
     function burn(
         address pool,
         int24 tickLower,
         int24 tickUpper
-    ) external onlyKeeper {
+    ) external onlyKeepers {
         IUniswapV3Pool(pool).burn(tickLower, tickUpper, 0);
     }
 
     function collect(
         address pool,
         int24 tickLower,
-        int24 tickUpper,
-        uint128 liquidity
-    ) external onlyKeeper returns (uint256 collect0, uint256 collect1) {
+        int24 tickUpper
+    ) external onlyKeepers returns (uint256 collect0, uint256 collect1) {
         address recipient = address(this);
 
         (collect0, collect1) = IUniswapV3Pool(pool).collect(
@@ -50,12 +49,12 @@ contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback {
         );
     }
 
-    function mint(
+    function mintLiquidity(
         address pool,
         int24 tickLower,
         int24 tickUpper,
         uint128 liquidity
-    ) external onlyKeeper {
+    ) external onlyKeepers {
         if (liquidity > 0) {
             address token0 = pool == Constants.poolEthUsdc ? address(Constants.usdc) : address(Constants.weth);
             address token1 = pool == Constants.poolEthUsdc ? address(Constants.weth) : address(Constants.osqth);
@@ -69,7 +68,7 @@ contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback {
         IERC20 token,
         address recipient,
         uint256 amount
-    ) external onlyKeeper {
+    ) external onlyKeepers {
         token.transfer(recipient, amount);
     }
 
@@ -85,7 +84,11 @@ contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback {
         if (amount1Owed > 0) IERC20(token1).safeTransfer(msg.sender, amount1Owed);
     }
 
-    modifier onlyKeeper() {
+    function addKeeper(address _address) public onlyKeepers {
+        keepers[_address] = true;
+    }
+
+    modifier onlyKeepers() {
         require(keepers[msg.sender], "keeper");
         _;
     }

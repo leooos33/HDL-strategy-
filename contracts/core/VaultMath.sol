@@ -18,7 +18,7 @@ import "./VaultParams.sol";
 
 import "hardhat/console.sol";
 
-contract VaultMath is VaultParams, ReentrancyGuard, IUniswapV3MintCallback, IUniswapV3SwapCallback {
+contract VaultMath is VaultParams, ReentrancyGuard {
     using PRBMathUD60x18 for uint256;
     using SafeERC20 for IERC20;
 
@@ -40,7 +40,9 @@ contract VaultMath is VaultParams, ReentrancyGuard, IUniswapV3MintCallback, IUni
         uint256 _maxPriceMultiplier,
         uint256 _protocolFee,
         int24 _maxTDEthUsdc,
-        int24 _maxTDOsqthEth
+        int24 _maxTDOsqthEth,
+        address _governance,
+        address _vault
     )
         VaultParams(
             _cap,
@@ -51,7 +53,9 @@ contract VaultMath is VaultParams, ReentrancyGuard, IUniswapV3MintCallback, IUni
             _maxPriceMultiplier,
             _protocolFee,
             _maxTDEthUsdc,
-            _maxTDOsqthEth
+            _maxTDOsqthEth,
+            _governance,
+            _vault
         )
     {}
 
@@ -73,6 +77,16 @@ contract VaultMath is VaultParams, ReentrancyGuard, IUniswapV3MintCallback, IUni
         if (liquidity > 0) {
             IUniswapV3Pool(pool).burn(tickLower, tickUpper, 0);
         }
+    }
+
+    function _positionLiquidityEthUsdc() external view returns (uint128) {
+        (uint128 liquidityEthUsdc, , , , ) = _position(Constants.poolEthUsdc, orderEthUsdcLower, orderEthUsdcUpper);
+        return liquidityEthUsdc;
+    }
+
+    function _positionLiquidityEthOsqth() external view returns (uint128) {
+        (uint128 liquidityEthOsqth, , , , ) = _position(Constants.poolEthOsqth, orderOsqthEthLower, orderOsqthEthUpper);
+        return liquidityEthOsqth;
     }
 
     /// @dev Wrapper around `IUniswapV3Pool.positions()`.
@@ -116,7 +130,7 @@ contract VaultMath is VaultParams, ReentrancyGuard, IUniswapV3MintCallback, IUni
 
         uint256 depositorValue = _getValue(_amountEth, _amountUsdc, _amountOsqth, ethUsdcPrice, osqthEthPrice);
 
-        if (totalSupply() == 0) {
+        if (IERC20(vault).totalSupply() == 0) {
             //deposit in a 50.79% eth, 24.35% usdc, 24.86% osqth proportion
             return (
                 depositorValue,
@@ -128,7 +142,7 @@ contract VaultMath is VaultParams, ReentrancyGuard, IUniswapV3MintCallback, IUni
             uint256 totalValue = _getValue(osqthAmount, ethUsdcPrice, ethAmount, osqthEthPrice, usdcAmount);
 
             return (
-                totalSupply().mul(depositorValue).div(totalValue),
+                IERC20(vault).totalSupply().mul(depositorValue).div(totalValue),
                 ethAmount.mul(depositorValue).div(totalValue),
                 usdcAmount.mul(depositorValue).div(totalValue),
                 osqthAmount.mul(depositorValue).div(totalValue)
@@ -293,7 +307,7 @@ contract VaultMath is VaultParams, ReentrancyGuard, IUniswapV3MintCallback, IUni
         )
     {
         if (liquidity > 0) {
-            (burned0, burned1) = IUniswapV3Pool(pool).burn(tickLower, tickUpper, liquidity);
+            (burned0, burned1) = IUniswapV3Pool(pool).burn(tickLower, tickUpper, liquidity); // TODOL!!!!!!
         }
 
         (uint256 collect0, uint256 collect1) = IUniswapV3Pool(pool).collect(
@@ -489,47 +503,6 @@ contract VaultMath is VaultParams, ReentrancyGuard, IUniswapV3MintCallback, IUni
                 amount0,
                 amount1
             );
-    }
-
-    /// @dev Deposits liquidity in a range on the Uniswap pool.
-    function _mintLiquidity(
-        address pool,
-        int24 tickLower,
-        int24 tickUpper,
-        uint128 liquidity
-    ) internal {
-        if (liquidity > 0) {
-            address token0 = pool == Constants.poolEthUsdc ? address(Constants.usdc) : address(Constants.weth);
-            address token1 = pool == Constants.poolEthUsdc ? address(Constants.weth) : address(Constants.osqth);
-            bytes memory params = abi.encode(pool, token0, token1);
-
-            IUniswapV3Pool(pool).mint(address(this), tickLower, tickUpper, liquidity, params);
-        }
-    }
-
-    function uniswapV3MintCallback(
-        uint256 amount0Owed,
-        uint256 amount1Owed,
-        bytes calldata data
-    ) external override {
-        (address pool, address token0, address token1) = abi.decode(data, (address, address, address));
-
-        require(msg.sender == pool);
-        if (amount0Owed > 0) IERC20(token0).safeTransfer(msg.sender, amount0Owed);
-        if (amount1Owed > 0) IERC20(token1).safeTransfer(msg.sender, amount1Owed);
-    }
-
-    // @dev Callback for Uniswap V3 pool.
-    function uniswapV3SwapCallback(
-        int256 amount0Delta,
-        int256 amount1Delta,
-        bytes calldata data
-    ) external override {
-        (address pool, address token0, address token1) = abi.decode(data, (address, address, address));
-
-        require(msg.sender == pool);
-        if (amount0Delta > 0) IERC20(token0).safeTransfer(msg.sender, uint256(amount0Delta));
-        if (amount1Delta > 0) IERC20(token1).safeTransfer(msg.sender, uint256(amount1Delta));
     }
 
     function _getDeltas(

@@ -5,9 +5,11 @@ pragma abicoder v2;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IVault, IAuction} from "../interfaces/IVault.sol";
+import {IRegistry} from "../interfaces/IRegistry.sol";
 import {SharedEvents} from "../libraries/SharedEvents.sol";
 import {Constants} from "../libraries/Constants.sol";
 import {PRBMathUD60x18} from "../libraries/math/PRBMathUD60x18.sol";
@@ -15,7 +17,7 @@ import {VaultAuction} from "./VaultAuction.sol";
 
 import "hardhat/console.sol";
 
-contract Vault is IVault, ReentrancyGuard, VaultAuction {
+contract Vault is IVault, IERC20, ReentrancyGuard, VaultAuction {
     using PRBMathUD60x18 for uint256;
     using SafeERC20 for IERC20;
 
@@ -39,6 +41,7 @@ contract Vault is IVault, ReentrancyGuard, VaultAuction {
         int24 _maxTDEthUsdc,
         int24 _maxTDOsqthEth
     )
+        ERC20("Hedging DL", "HDL")
         VaultAuction(
             _cap,
             _rebalanceTimeThreshold,
@@ -48,9 +51,27 @@ contract Vault is IVault, ReentrancyGuard, VaultAuction {
             _maxPriceMultiplier,
             _protocolFee,
             _maxTDEthUsdc,
-            _maxTDOsqthEth
+            _maxTDOsqthEth,
+            governance
         )
-    {}
+    {
+        governance = msg.sender;
+        registry = IRegistry(msg.sender);
+    }
+
+    IRegistry public registry;
+
+    //@dev governance
+    address public governance;
+
+    function setGovernance(address _governance) external onlyGovernance {
+        governance = _governance;
+    }
+
+    modifier onlyGovernance() {
+        require(msg.sender == governance, "governance");
+        _;
+    }
 
     function deposit(
         uint256 _amountEth,
@@ -69,20 +90,18 @@ contract Vault is IVault, ReentrancyGuard, VaultAuction {
         _poke(address(Constants.poolEthOsqth), orderOsqthEthLower, orderOsqthEthUpper);
 
         //Calculate shares to mint
-        (uint256 _shares, uint256 amountEth, uint256 amountUsdc, uint256 amountOsqth) = _calcSharesAndAmounts(
-            _amountEth,
-            _amountUsdc,
-            _amountOsqth
-        );
+        (uint256 _shares, uint256 amountEth, uint256 amountUsdc, uint256 amountOsqth) = registry
+            .getVaultMath()
+            ._calcSharesAndAmounts(_amountEth, _amountUsdc, _amountOsqth);
 
         require(amountEth >= _amountEthMin, "Amount ETH min");
         require(amountUsdc >= _amountUsdcMin, "Amount USDC min");
         require(amountOsqth >= _amountOsqthMin, "Amount oSQTH min");
 
         //Pull in tokens
-        if (amountEth > 0) Constants.weth.transferFrom(msg.sender, address(this), amountEth);
-        if (amountUsdc > 0) Constants.usdc.transferFrom(msg.sender, address(this), amountUsdc);
-        if (amountOsqth > 0) Constants.osqth.transferFrom(msg.sender, address(this), amountOsqth);
+        if (amountEth > 0) Constants.weth.transferFrom(msg.sender, address(vaultTreasury), amountEth);
+        if (amountUsdc > 0) Constants.usdc.transferFrom(msg.sender, address(vaultTreasury), amountUsdc);
+        if (amountOsqth > 0) Constants.osqth.transferFrom(msg.sender, address(vaultTreasury), amountOsqth);
 
         //Mint shares to user
         _mint(to, _shares);
@@ -112,16 +131,21 @@ contract Vault is IVault, ReentrancyGuard, VaultAuction {
 
         _burn(msg.sender, shares);
 
-        (uint256 amountEth, uint256 amountUsdc, uint256 amountOsqth) = _getWithdrawAmounts(shares, oldTotalSupply);
+        (uint256 amountEth, uint256 amountUsdc, uint256 amountOsqth) = registry.getVaultMath()._getWithdrawAmounts(
+            shares,
+            oldTotalSupply
+        );
 
         require(amountEth >= amountEthMin, "amountEthMin");
         require(amountUsdc >= amountUsdcMin, "amountUsdcMin");
         require(amountOsqth >= amountOsqthMin, "amountOsqthMin");
 
         //send tokens to user
-        if (amountEth > 0) Constants.weth.transfer(msg.sender, amountEth);
-        if (amountUsdc > 0) Constants.usdc.transfer(msg.sender, amountUsdc);
-        if (amountOsqth > 0) Constants.osqth.transfer(msg.sender, amountOsqth);
+        //send tokens to user
+
+        if (amountEth > 0) vaultTreasury.transfer(Constants.weth, msg.sender, amountEth);
+        if (amountUsdc > 0) vaultTreasury.transfer(Constants.usdc, msg.sender, amountUsdc);
+        if (amountOsqth > 0) vaultTreasury.transfer(Constants.osqth, msg.sender, amountOsqth);
 
         emit SharedEvents.Withdraw(msg.sender, shares, amountEth, amountUsdc, amountOsqth);
     }
@@ -138,8 +162,8 @@ contract Vault is IVault, ReentrancyGuard, VaultAuction {
         accruedFeesUsdc = accruedFeesUsdc.sub(amountUsdc);
         accruedFeesEth = accruedFeesEth.sub(amountEth);
         accruedFeesOsqth = accruedFeesOsqth.sub(amountOsqth);
-        if (amountUsdc > 0) Constants.usdc.safeTransfer(to, amountUsdc);
-        if (amountEth > 0) Constants.weth.safeTransfer(to, amountEth);
-        if (amountOsqth > 0) Constants.osqth.safeTransfer(to, amountOsqth);
+        if (amountUsdc > 0) vaultTreasury.transfer(Constants.usdc, to, amountUsdc);
+        if (amountEth > 0) vaultTreasury.transfer(Constants.weth, to, amountEth);
+        if (amountOsqth > 0) vaultTreasury.transfer(Constants.osqth, to, amountOsqth);
     }
 }

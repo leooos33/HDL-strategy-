@@ -10,7 +10,7 @@ import "../libraries/Constants.sol";
 
 import "hardhat/console.sol";
 
-abstract contract VaultParams is IERC20, ERC20 {
+abstract contract VaultParams {
     //@dev Uniswap pools tick spacing
     int24 public immutable tickSpacingEthUsdc;
     int24 public immutable tickSpacingOsqthEth;
@@ -23,6 +23,9 @@ abstract contract VaultParams is IERC20, ERC20 {
 
     //@dev governance
     address public governance;
+
+    //@dev vault
+    address public vault;
 
     //@dev lower and upper ticks in Uniswap pools
     // Removed
@@ -78,10 +81,14 @@ abstract contract VaultParams is IERC20, ERC20 {
         uint256 _maxPriceMultiplier,
         uint256 _protocolFee,
         int24 _maxTDEthUsdc,
-        int24 _maxTDOsqthEth
-    ) ERC20("Hedging DL", "HDL") {
-        cap = _cap;
+        int24 _maxTDOsqthEth,
+        address _governance,
+        address _vault
+    ) {
+        governance = _governance;
+        vault = _vault;
 
+        cap = _cap;
         protocolFee = _protocolFee;
 
         tickSpacingEthUsdc = IUniswapV3Pool(Constants.poolEthUsdc).tickSpacing();
@@ -92,8 +99,6 @@ abstract contract VaultParams is IERC20, ERC20 {
         auctionTime = _auctionTime;
         minPriceMultiplier = _minPriceMultiplier;
         maxPriceMultiplier = _maxPriceMultiplier;
-
-        governance = msg.sender;
 
         timeAtLastRebalance = 0;
         maxTDEthUsdc = _maxTDEthUsdc;
@@ -140,16 +145,12 @@ abstract contract VaultParams is IERC20, ERC20 {
         protocolFee = _protocolFee;
     }
 
-    /**
-     * Used to for _getTotalAmounts unit testing
-     */
-    // TODO: remove on main
     function setTotalAmountsBoundaries(
         int24 _orderEthUsdcLower,
         int24 _orderEthUsdcUpper,
         int24 _orderOsqthEthLower,
         int24 _orderOsqthEthUpper
-    ) public {
+    ) public onlyVault {
         orderEthUsdcLower = _orderEthUsdcLower;
         orderEthUsdcUpper = _orderEthUsdcUpper;
         orderOsqthEthLower = _orderOsqthEthLower;
@@ -178,6 +179,11 @@ abstract contract VaultParams is IERC20, ERC20 {
 
     modifier onlyGovernance() {
         require(msg.sender == governance, "governance");
+        _;
+    }
+
+    modifier onlyVault() {
+        require(msg.sender == vault, "vault");
         _;
     }
 }
