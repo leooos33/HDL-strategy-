@@ -9,7 +9,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IVault, IAuction} from "../interfaces/IVault.sol";
-import {IRegistry} from "../interfaces/IRegistry.sol";
+
 import {SharedEvents} from "../libraries/SharedEvents.sol";
 import {Constants} from "../libraries/Constants.sol";
 import {PRBMathUD60x18} from "../libraries/math/PRBMathUD60x18.sol";
@@ -39,7 +39,8 @@ contract Vault is IVault, IERC20, ReentrancyGuard, VaultAuction {
         uint256 _maxPriceMultiplier,
         uint256 _protocolFee,
         int24 _maxTDEthUsdc,
-        int24 _maxTDOsqthEth
+        int24 _maxTDOsqthEth,
+        address _governance
     )
         ERC20("Hedging DL", "HDL")
         VaultAuction(
@@ -51,18 +52,11 @@ contract Vault is IVault, IERC20, ReentrancyGuard, VaultAuction {
             _maxPriceMultiplier,
             _protocolFee,
             _maxTDEthUsdc,
-            _maxTDOsqthEth,
-            governance
+            _maxTDOsqthEth
         )
     {
-        governance = msg.sender;
-        registry = IRegistry(msg.sender);
-    }
-
-    IRegistry public registry;
-
-    //@dev governance
-    address public governance;
+        governance = _governance;
+    }    
 
     function setGovernance(address _governance) external onlyGovernance {
         governance = _governance;
@@ -86,12 +80,11 @@ contract Vault is IVault, IERC20, ReentrancyGuard, VaultAuction {
         require(to != address(0) && to != address(this), "WA"); //Wrong address
 
         //Poke positions so vault's current holdings are up to date
-        _poke(address(Constants.poolEthUsdc), orderEthUsdcLower, orderEthUsdcUpper);
-        _poke(address(Constants.poolEthOsqth), orderOsqthEthLower, orderOsqthEthUpper);
+        vaultMath._poke(address(Constants.poolEthUsdc), vaultMath.orderEthUsdcLower, vaultMath.orderEthUsdcUpper);
+        vaultMath._poke(address(Constants.poolEthOsqth), vaultMath.orderOsqthEthLower, vaultMath.orderOsqthEthUpper);
 
         //Calculate shares to mint
-        (uint256 _shares, uint256 amountEth, uint256 amountUsdc, uint256 amountOsqth) = registry
-            .getVaultMath()
+        (uint256 _shares, uint256 amountEth, uint256 amountUsdc, uint256 amountOsqth) = vaultMath
             ._calcSharesAndAmounts(_amountEth, _amountUsdc, _amountOsqth);
 
         require(amountEth >= _amountEthMin, "Amount ETH min");

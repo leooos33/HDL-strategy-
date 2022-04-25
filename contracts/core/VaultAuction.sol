@@ -6,6 +6,7 @@ pragma abicoder v2;
 import {IAuction} from "../interfaces/IVault.sol";
 import {IRegistry} from "../interfaces/IRegistry.sol";
 import {SharedEvents} from "../libraries/SharedEvents.sol";
+import {Faucet} from "../libraries/Faucet.sol";
 import {Constants} from "../libraries/Constants.sol";
 import {VaultMath} from "./VaultMath.sol";
 import {VaultTreasury} from "./VaultTreasury.sol";
@@ -15,7 +16,7 @@ import {PRBMathUD60x18} from "../libraries/math/PRBMathUD60x18.sol";
 
 import "hardhat/console.sol";
 
-contract VaultAuction is IAuction, ReentrancyGuard {
+contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
     using PRBMathUD60x18 for uint256;
 
     /**
@@ -36,13 +37,8 @@ contract VaultAuction is IAuction, ReentrancyGuard {
         uint256 _maxPriceMultiplier,
         uint256 _protocolFee,
         int24 _maxTDEthUsdc,
-        int24 _maxTDOsqthEth,
-        address _governance
-    ) {
-        registry = IRegistry(msg.sender);
-    }
-
-    IRegistry public registry;
+        int24 _maxTDOsqthEth
+    ) Faucet(msg.sender) {}
 
     /**
      * @notice strategy rebalancing based on time threshold

@@ -41,8 +41,7 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         uint256 _protocolFee,
         int24 _maxTDEthUsdc,
         int24 _maxTDOsqthEth,
-        address _governance,
-        address _vault
+        address _governance
     )
         VaultParams(
             _cap,
@@ -54,8 +53,7 @@ contract VaultMath is VaultParams, ReentrancyGuard {
             _protocolFee,
             _maxTDEthUsdc,
             _maxTDOsqthEth,
-            _governance,
-            _vault
+            _governance
         )
     {}
 

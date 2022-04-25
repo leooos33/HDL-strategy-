@@ -5,12 +5,13 @@ pragma solidity =0.8.4;
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Faucet} from "../libraries/Faucet.sol";
 
 import "../libraries/Constants.sol";
 
 import "hardhat/console.sol";
 
-abstract contract VaultParams {
+abstract contract VaultParams is Faucet {
     //@dev Uniswap pools tick spacing
     int24 public immutable tickSpacingEthUsdc;
     int24 public immutable tickSpacingOsqthEth;
@@ -23,9 +24,6 @@ abstract contract VaultParams {
 
     //@dev governance
     address public governance;
-
-    //@dev vault
-    address public vault;
 
     //@dev lower and upper ticks in Uniswap pools
     // Removed
@@ -82,11 +80,9 @@ abstract contract VaultParams {
         uint256 _protocolFee,
         int24 _maxTDEthUsdc,
         int24 _maxTDOsqthEth,
-        address _governance,
-        address _vault
-    ) {
+        address _governance
+    ) Faucet(msg.sender) {
         governance = _governance;
-        vault = _vault;
 
         cap = _cap;
         protocolFee = _protocolFee;

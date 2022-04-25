@@ -11,9 +11,5 @@ import "./IVaultMath.sol";
 interface IRegistry {
     function getGovernance() external view returns (address);
 
-    function getVault() external view returns (IVault);
-
-    function getVaultTreasury() external view returns (IVaultTreasury);
-
-    function getVaultMath() external view returns (IVaultMath);
+    function getComponents() external view returns (address, address, address);
 }

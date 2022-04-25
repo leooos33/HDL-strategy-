@@ -41,7 +41,8 @@ contract Registry is IRegistry {
             _maxPriceMultiplier,
             _protocolFee,
             _maxTDEthUsdc,
-            _maxTDOsqthEth
+            _maxTDOsqthEth,
+            governance
         );
         vault = address(_vault);
 
@@ -55,8 +56,7 @@ contract Registry is IRegistry {
             _protocolFee,
             _maxTDEthUsdc,
             _maxTDOsqthEth,
-            governance,
-            vault
+            governance
         );
         vaultMath = address(_vaultMath);
 
@@ -65,6 +65,10 @@ contract Registry is IRegistry {
         _vaultTreasury.addKeeper(vault);
 
         vaultTreasury = address(_vaultTreasury);
+
+        _vault.updateComponents();
+        _vaultMath.updateComponents();
+        _vaultTreasury.updateComponents();
     }
 
     //@dev governance
@@ -73,19 +77,11 @@ contract Registry is IRegistry {
     address vaultTreasury;
     address vaultMath;
 
-    function getGovernance() external view returns (address) {
-        return governance;
-    }
-
-    function getVault() external view returns (address) {
-        return vault;
-    }
-
-    function getVaultTreasury() external view returns (address) {
-        return vaultTreasury;
-    }
-
-    function getVaultMath() external view returns (address) {
-        return vaultMath;
+    function getComponents() external view returns (address, address, address) {
+        return (
+            vault,
+            vaultMath,
+            vaultTreasury
+        );
     }
 }

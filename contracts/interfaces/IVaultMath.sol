@@ -24,4 +24,10 @@ interface IVaultMath {
             uint256,
             uint256
         );
+
+    function _poke(
+        address pool,
+        int24 tickLower,
+        int24 tickUpper
+    ) external;
 }
