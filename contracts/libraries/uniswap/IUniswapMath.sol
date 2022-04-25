@@ -3,9 +3,9 @@
 pragma solidity =0.8.4;
 pragma abicoder v2;
 
-import "../libraries/Constants.sol";
+import "../Constants.sol";
 
-interface IUniswapAdaptor {
+interface IUniswapMath {
     function getTickAtSqrtRatio(uint160 sqrtPriceX96) external pure returns (int24 tick);
 
     function getSqrtRatioAtTick(int24 tick) external pure returns (uint160 sqrtPriceX96);
