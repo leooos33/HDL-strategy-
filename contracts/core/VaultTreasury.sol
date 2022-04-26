@@ -10,18 +10,18 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {IUniswapV3MintCallback} from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 
-// import {IVaultTreasury} from "../interfaces/IVaultTreasury.sol";
 import {SharedEvents} from "../libraries/SharedEvents.sol";
+import {Faucet} from "../libraries/Faucet.sol";
 import {Constants} from "../libraries/Constants.sol";
 
 import "hardhat/console.sol";
 
-contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback {
+contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback, Faucet {
     using SafeERC20 for IERC20;
 
     mapping(address => bool) keepers;
 
-    constructor() {
+    constructor() Faucet() {
         keepers[msg.sender] = true;
     }
 
@@ -84,12 +84,8 @@ contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback {
         if (amount1Owed > 0) IERC20(token1).safeTransfer(msg.sender, amount1Owed);
     }
 
-    function addKeeper(address _address) public onlyKeepers {
-        keepers[_address] = true;
-    }
-
     modifier onlyKeepers() {
-        require(keepers[msg.sender], "keeper");
+        require(msg.sender == vault || msg.sender == vaultMath, "keeper");
         _;
     }
 }

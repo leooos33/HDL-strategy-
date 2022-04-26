@@ -10,37 +10,34 @@ const deploymentParams = [
     "1100000000000000000",
     "0",
     "1000",
-    "1000"
+    "0"
 ];
 
 const hardhatDeploy = async (governance, params) => {
-    await deployContract("UniswapMath", []);
+    const UniswapMath = await deployContract("UniswapMath", []);
     const Vault = await deployContract("Vault", [...params, governance.address]);
     const VaultMath = await deployContract("VaultMath", [...params, governance.address]);
     const VaultTreasury = await deployContract("VaultTreasury", []);
 
     {
         let tx;
-        tx = await VaultTreasury
-            .addKeeper(VaultMath.address);
-        await tx.wait();
-
-        tx = await VaultTreasury
-            .addKeeper(Vault.address);
-        await tx.wait();
-
         tx = await Vault
-            .setComponents(Vault.address, VaultMath.address, VaultTreasury.address);
+            .setComponents(UniswapMath.address, Vault.address, VaultMath.address, VaultTreasury.address);
         await tx.wait();
 
         tx = await VaultMath
-            .setComponents(Vault.address, VaultMath.address, VaultTreasury.address);
+            .setComponents(UniswapMath.address, Vault.address, VaultMath.address, VaultTreasury.address);
+        await tx.wait();
+
+        tx = await VaultTreasury
+            .setComponents(UniswapMath.address, Vault.address, VaultMath.address, VaultTreasury.address);
         await tx.wait();
     }
 
     return [
         Vault,
-        VaultMath
+        VaultMath,
+        VaultTreasury
     ];
 }
 

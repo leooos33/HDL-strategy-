@@ -5,7 +5,6 @@ import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Po
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IOracle} from "../interfaces/IOracle.sol";
-import {IUniswapMath} from "../libraries/uniswap/IUniswapMath.sol";
 
 library Constants {
     //@dev ETH-USDC Uniswap pool
@@ -21,9 +20,6 @@ library Constants {
 
     //@dev strategy Uniswap oracle
     IOracle public constant oracle = IOracle(0x65D66c76447ccB45dAf1e8044e918fA786A483A1);
-
-    //TODO: change this before maiinet deploy
-    IUniswapMath public constant uniswapMath = IUniswapMath(0x870526b7973b56163a6997bB7C886F5E4EA53638);
 
     struct SharesInfo {
         uint256 totalSupply;

@@ -10,6 +10,7 @@ import {IUniswapV3SwapCallback} from "@uniswap/v3-core/contracts/interfaces/call
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {PositionKey} from "@uniswap/v3-periphery/contracts/libraries/PositionKey.sol";
 
+import {IUniswapMath} from "../libraries/uniswap/IUniswapMath.sol";
 import "../libraries/SharedEvents.sol";
 import "../libraries/Constants.sol";
 import {PRBMathUD60x18} from "../libraries/math/PRBMathUD60x18.sol";
@@ -159,7 +160,7 @@ contract VaultMath is VaultParams, ReentrancyGuard {
     }
 
     function _getWithdrawAmounts(uint256 shares, uint256 totalSupply)
-        internal
+        external
         returns (
             uint256,
             uint256,
@@ -266,10 +267,10 @@ contract VaultMath is VaultParams, ReentrancyGuard {
     ) internal view returns (uint256, uint256) {
         (uint160 sqrtRatioX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
         return
-            Constants.uniswapMath.getAmountsForLiquidity(
+            IUniswapMath(uniswapMath).getAmountsForLiquidity(
                 sqrtRatioX96,
-                Constants.uniswapMath.getSqrtRatioAtTick(tickLower),
-                Constants.uniswapMath.getSqrtRatioAtTick(tickUpper),
+                IUniswapMath(uniswapMath).getSqrtRatioAtTick(tickLower),
+                IUniswapMath(uniswapMath).getSqrtRatioAtTick(tickUpper),
                 liquidity
             );
     }
@@ -389,11 +390,11 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         isPriceInc = _ethUsdcPrice >= ethPriceAtLastRebalance ? true : false;
     }
 
-    function _getPriceFromTick(int24 tick) internal pure returns (uint256) {
+    function _getPriceFromTick(int24 tick) internal view returns (uint256) {
         //const = 2^192
         uint256 const = 6277101735386680763835789423207666416102355444464034512896;
 
-        uint160 sqrtRatioAtTick = Constants.uniswapMath.getSqrtRatioAtTick(tick);
+        uint160 sqrtRatioAtTick = IUniswapMath(uniswapMath).getSqrtRatioAtTick(tick);
         return (uint256(sqrtRatioAtTick)).pow(uint256(2e18)).mul(1e36).div(const);
     }
 
@@ -504,10 +505,10 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         (uint160 sqrtRatioX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
 
         return
-            Constants.uniswapMath.getLiquidityForAmounts(
+            IUniswapMath(uniswapMath).getLiquidityForAmounts(
                 sqrtRatioX96,
-                Constants.uniswapMath.getSqrtRatioAtTick(tickLower),
-                Constants.uniswapMath.getSqrtRatioAtTick(tickUpper),
+                IUniswapMath(uniswapMath).getSqrtRatioAtTick(tickLower),
+                IUniswapMath(uniswapMath).getSqrtRatioAtTick(tickUpper),
                 amount0,
                 amount1
             );
@@ -557,8 +558,8 @@ contract VaultMath is VaultParams, ReentrancyGuard {
     {
         (uint160 _aEthUsdcTick, uint160 _aOsqthEthTick) = _getTicks(aEthUsdcPrice, aOsqthEthPrice);
 
-        int24 aEthUsdcTick = Constants.uniswapMath.getTickAtSqrtRatio(_aEthUsdcTick);
-        int24 aOsqthEthTick = Constants.uniswapMath.getTickAtSqrtRatio(_aOsqthEthTick);
+        int24 aEthUsdcTick = IUniswapMath(uniswapMath).getTickAtSqrtRatio(_aEthUsdcTick);
+        int24 aOsqthEthTick = IUniswapMath(uniswapMath).getTickAtSqrtRatio(_aOsqthEthTick);
 
         int24 tickFloorEthUsdc = _floor(aEthUsdcTick, tickSpacingEthUsdc);
         int24 tickFloorOsqthEth = _floor(aOsqthEthTick, tickSpacingOsqthEth);

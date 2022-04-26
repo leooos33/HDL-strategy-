@@ -85,7 +85,7 @@ abstract contract VaultParams is Faucet {
         int24 _maxTDEthUsdc,
         int24 _maxTDOsqthEth,
         address _governance
-    ) Faucet(msg.sender) {
+    ) Faucet() {
         governance = _governance;
 
         cap = _cap;
