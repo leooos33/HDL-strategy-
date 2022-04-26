@@ -5,6 +5,8 @@ pragma abicoder v2;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {Constants} from "../libraries/Constants.sol";
+
 interface IVaultTreasury {
     function burn(
         address pool,
@@ -31,4 +33,24 @@ interface IVaultTreasury {
         address recipient,
         uint256 amount
     ) external;
+
+    function amountsForLiquidity(
+        address pool,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 liquidity
+    ) external view returns (uint256, uint256);
+
+    function allAmountsForLiquidity(
+        Constants.Boundaries memory boundaries,
+        uint128 liquidityEthUsdc,
+        uint128 liquidityOsqthEth
+    )
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256
+        );
 }

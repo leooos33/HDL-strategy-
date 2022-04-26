@@ -238,7 +238,12 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         int24 tickUpper
     ) internal view returns (uint256, uint256) {
         (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = _position(pool, tickLower, tickUpper);
-        (uint256 amount0, uint256 amount1) = _amountsForLiquidity(pool, tickLower, tickUpper, liquidity);
+        (uint256 amount0, uint256 amount1) = IVaultTreasury(vaultTreasury).amountsForLiquidity(
+            pool,
+            tickLower,
+            tickUpper,
+            liquidity
+        );
 
         uint256 oneMinusFee = uint256(1e6).sub(protocolFee);
 
@@ -255,22 +260,6 @@ contract VaultMath is VaultParams, ReentrancyGuard {
 
     function _getBalance(IERC20 token) internal view returns (uint256) {
         return token.balanceOf(vaultTreasury); //? accrued protocol fees
-    }
-
-    function _amountsForLiquidity(
-        address pool,
-        int24 tickLower,
-        int24 tickUpper,
-        uint128 liquidity
-    ) internal view returns (uint256, uint256) {
-        (uint160 sqrtRatioX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
-        return
-            IUniswapMath(uniswapMath).getAmountsForLiquidity(
-                sqrtRatioX96,
-                IUniswapMath(uniswapMath).getSqrtRatioAtTick(tickLower),
-                IUniswapMath(uniswapMath).getSqrtRatioAtTick(tickUpper),
-                liquidity
-            );
     }
 
     /// @dev Withdraws share of liquidity in a range from Uniswap pool.
@@ -517,30 +506,15 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         internal
         view
         returns (
-            uint256, //deltaEth
-            uint256, //deltaUsdc
-            uint256 //deltaOsqth
+            uint256,
+            uint256,
+            uint256
         )
     {
-        //scope
-        (uint256 usdcAmount, uint256 ethAmount0) = _amountsForLiquidity(
-            Constants.poolEthUsdc,
-            boundaries.ethUsdcLower,
-            boundaries.ethUsdcUpper,
-            liquidityEthUsdc
-        );
-        (uint256 ethAmount1, uint256 osqthAmount) = _amountsForLiquidity(
-            Constants.poolEthOsqth,
-            boundaries.osqthEthLower,
-            boundaries.osqthEthUpper,
-            liquidityOsqthEth
-        );
+        (uint256 ethAmount, uint256 usdcAmount, uint256 osqthAmount) = IVaultTreasury(vaultTreasury)
+            .allAmountsForLiquidity(boundaries, liquidityEthUsdc, liquidityOsqthEth);
 
-        return (
-            ethBalance.suba(ethAmount0).suba(ethAmount1),
-            usdcBalance.suba(usdcAmount),
-            osqthBalance.suba(osqthAmount)
-        );
+        return (ethBalance.suba(ethAmount), usdcBalance.suba(usdcAmount), osqthBalance.suba(osqthAmount));
     }
 
     function _getBoundaries(uint256 aEthUsdcPrice, uint256 aOsqthEthPrice)

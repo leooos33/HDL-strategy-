@@ -9,6 +9,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IUniswapV3MintCallback} from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import {IUniswapMath} from "../libraries/uniswap/IUniswapMath.sol";
 
 import {SharedEvents} from "../libraries/SharedEvents.sol";
 import {Faucet} from "../libraries/Faucet.sol";
@@ -24,6 +25,52 @@ contract VaultTreasury is IVaultTreasury, ReentrancyGuard, IUniswapV3MintCallbac
 
     constructor() Faucet() {
         keepers[msg.sender] = true;
+    }
+
+    function amountsForLiquidity(
+        address pool,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 liquidity
+    ) public view override returns (uint256, uint256) {
+        (uint160 sqrtRatioX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
+        return
+            IUniswapMath(uniswapMath).getAmountsForLiquidity(
+                sqrtRatioX96,
+                IUniswapMath(uniswapMath).getSqrtRatioAtTick(tickLower),
+                IUniswapMath(uniswapMath).getSqrtRatioAtTick(tickUpper),
+                liquidity
+            );
+    }
+
+    function allAmountsForLiquidity(
+        Constants.Boundaries memory boundaries,
+        uint128 liquidityEthUsdc,
+        uint128 liquidityOsqthEth
+    )
+        external
+        view
+        override
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        (uint256 usdcAmount, uint256 ethAmount0) = amountsForLiquidity(
+            Constants.poolEthUsdc,
+            boundaries.ethUsdcLower,
+            boundaries.ethUsdcUpper,
+            liquidityEthUsdc
+        );
+        (uint256 ethAmount1, uint256 osqthAmount) = amountsForLiquidity(
+            Constants.poolEthOsqth,
+            boundaries.osqthEthLower,
+            boundaries.osqthEthUpper,
+            liquidityOsqthEth
+        );
+
+        return (ethAmount0 + ethAmount1, usdcAmount, osqthAmount);
     }
 
     function burn(
