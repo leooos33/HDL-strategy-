@@ -53,4 +53,19 @@ interface IVaultTreasury {
             uint256,
             uint256
         );
+
+    function position(
+        address pool,
+        int24 tickLower,
+        int24 tickUpper
+    )
+        external
+        view
+        returns (
+            uint128,
+            uint256,
+            uint256,
+            uint128,
+            uint128
+        );
 }

@@ -6,7 +6,6 @@ pragma abicoder v2;
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import {PositionKey} from "@uniswap/v3-periphery/contracts/libraries/PositionKey.sol";
 
 import {IUniswapMath} from "../libraries/uniswap/IUniswapMath.sol";
 import "../libraries/SharedEvents.sol";
@@ -79,7 +78,7 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         int24 tickLower,
         int24 tickUpper
     ) internal {
-        (uint128 liquidity, , , , ) = _position(pool, tickLower, tickUpper);
+        (uint128 liquidity, , , , ) = IVaultTreasury(vaultTreasury).position(pool, tickLower, tickUpper);
 
         if (liquidity > 0) {
             IVaultTreasury(vaultTreasury).burn(pool, tickLower, tickUpper, 0);
@@ -87,33 +86,21 @@ contract VaultMath is VaultParams, ReentrancyGuard {
     }
 
     function _positionLiquidityEthUsdc() external view returns (uint128) {
-        (uint128 liquidityEthUsdc, , , , ) = _position(Constants.poolEthUsdc, orderEthUsdcLower, orderEthUsdcUpper);
+        (uint128 liquidityEthUsdc, , , , ) = IVaultTreasury(vaultTreasury).position(
+            Constants.poolEthUsdc,
+            orderEthUsdcLower,
+            orderEthUsdcUpper
+        );
         return liquidityEthUsdc;
     }
 
     function _positionLiquidityEthOsqth() external view returns (uint128) {
-        (uint128 liquidityEthOsqth, , , , ) = _position(Constants.poolEthOsqth, orderOsqthEthLower, orderOsqthEthUpper);
+        (uint128 liquidityEthOsqth, , , , ) = IVaultTreasury(vaultTreasury).position(
+            Constants.poolEthOsqth,
+            orderOsqthEthLower,
+            orderOsqthEthUpper
+        );
         return liquidityEthOsqth;
-    }
-
-    /// @dev Wrapper around `IUniswapV3Pool.positions()`.
-    function _position(
-        address pool,
-        int24 tickLower,
-        int24 tickUpper
-    )
-        internal
-        view
-        returns (
-            uint128,
-            uint256,
-            uint256,
-            uint128,
-            uint128
-        )
-    {
-        bytes32 positionKey = PositionKey.compute(vaultTreasury, tickLower, tickUpper);
-        return IUniswapV3Pool(pool).positions(positionKey);
     }
 
     //TODO: make me internal in mainnet
@@ -237,7 +224,11 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         int24 tickLower,
         int24 tickUpper
     ) internal view returns (uint256, uint256) {
-        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = _position(pool, tickLower, tickUpper);
+        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = IVaultTreasury(vaultTreasury).position(
+            pool,
+            tickLower,
+            tickUpper
+        );
         (uint256 amount0, uint256 amount1) = IVaultTreasury(vaultTreasury).amountsForLiquidity(
             pool,
             tickLower,
@@ -270,7 +261,7 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         uint256 shares,
         uint256 totalSupply
     ) internal returns (uint256 amount0, uint256 amount1) {
-        (uint128 totalLiquidity, , , , ) = _position(pool, tickLower, tickUpper);
+        (uint128 totalLiquidity, , , , ) = IVaultTreasury(vaultTreasury).position(pool, tickLower, tickUpper);
         uint256 liquidity = uint256(totalLiquidity).mul(shares).div(totalSupply);
 
         if (liquidity > 0) {

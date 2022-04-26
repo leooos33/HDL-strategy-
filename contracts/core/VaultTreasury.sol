@@ -15,6 +15,7 @@ import {SharedEvents} from "../libraries/SharedEvents.sol";
 import {Faucet} from "../libraries/Faucet.sol";
 import {Constants} from "../libraries/Constants.sol";
 import {IVaultTreasury} from "../interfaces/IVaultTreasury.sol";
+import {PositionKey} from "@uniswap/v3-periphery/contracts/libraries/PositionKey.sol";
 
 import "hardhat/console.sol";
 
@@ -32,7 +33,7 @@ contract VaultTreasury is IVaultTreasury, ReentrancyGuard, IUniswapV3MintCallbac
         int24 tickLower,
         int24 tickUpper,
         uint128 liquidity
-    ) public view override returns (uint256, uint256) {
+    ) public view override onlyKeepers returns (uint256, uint256) {
         (uint160 sqrtRatioX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
         return
             IUniswapMath(uniswapMath).getAmountsForLiquidity(
@@ -43,6 +44,27 @@ contract VaultTreasury is IVaultTreasury, ReentrancyGuard, IUniswapV3MintCallbac
             );
     }
 
+    /// @dev Wrapper around `IUniswapV3Pool.positions()`.
+    function position(
+        address pool,
+        int24 tickLower,
+        int24 tickUpper
+    )
+        external
+        view
+        override
+        returns (
+            uint128,
+            uint256,
+            uint256,
+            uint128,
+            uint128
+        )
+    {
+        bytes32 positionKey = PositionKey.compute(address(this), tickLower, tickUpper);
+        return IUniswapV3Pool(pool).positions(positionKey);
+    }
+
     function allAmountsForLiquidity(
         Constants.Boundaries memory boundaries,
         uint128 liquidityEthUsdc,
@@ -51,6 +73,7 @@ contract VaultTreasury is IVaultTreasury, ReentrancyGuard, IUniswapV3MintCallbac
         external
         view
         override
+        onlyKeepers
         returns (
             uint256,
             uint256,
