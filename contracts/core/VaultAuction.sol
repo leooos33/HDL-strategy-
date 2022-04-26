@@ -3,13 +3,15 @@
 pragma solidity =0.8.4;
 pragma abicoder v2;
 
+import {IVaultTreasury} from "../interfaces/IVaultTreasury.sol";
+import {IVaultMath} from "../interfaces/IVaultMath.sol";
 import {IAuction} from "../interfaces/IVault.sol";
 import {IRegistry} from "../interfaces/IRegistry.sol";
+
 import {SharedEvents} from "../libraries/SharedEvents.sol";
 import {Faucet} from "../libraries/Faucet.sol";
 import {Constants} from "../libraries/Constants.sol";
-import {VaultMath} from "./VaultMath.sol";
-import {VaultTreasury} from "./VaultTreasury.sol";
+
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import {PRBMathUD60x18} from "../libraries/math/PRBMathUD60x18.sol";
@@ -55,7 +57,7 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
         uint256 amountOsqth
     ) external override nonReentrant {
         //check if rebalancing based on time threshold is allowed
-        (bool isTimeRebalanceAllowed, uint256 auctionTriggerTime) = registry.getVaultMath().isTimeRebalance();
+        (bool isTimeRebalanceAllowed, uint256 auctionTriggerTime) = IVaultMath(vaultMath).isTimeRebalance();
 
         require(isTimeRebalanceAllowed, "Time rebalance not allowed");
 
@@ -81,7 +83,7 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
         uint256 _amountOsqth
     ) external nonReentrant {
         //check if rebalancing based on price threshold is allowed
-        require(registry.getVaultMath()._isPriceRebalance(_auctionTriggerTime), "Price rebalance not allowed");
+        require(IVaultMath(vaultMath)._isPriceRebalance(_auctionTriggerTime), "Price rebalance not allowed");
 
         _rebalance(keeper, _auctionTriggerTime, _amountEth, _amountUsdc, _amountOsqth);
 
@@ -103,7 +105,7 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
         uint256 _amountUsdc,
         uint256 _amountOsqth
     ) internal {
-        Constants.AuctionParams memory params = registry.getVaultMath()._getAuctionParams(_auctionTriggerTime);
+        Constants.AuctionParams memory params = IVaultMath(vaultMath)._getAuctionParams(_auctionTriggerTime);
 
         _executeAuction(keeper, params);
 
@@ -118,17 +120,17 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
      * @dev place new positions in eth:usdc and osqth:eth pool
      */
     function _executeAuction(address _keeper, Constants.AuctionParams memory params) internal {
-        uint128 liquidityEthUsdc = registry.getVaultMath()._positionLiquidityEthUsdc();
-        uint128 liquidityOsqthEth = registry.getVaultMath()._positionLiquidityEthOsqth();
+        uint128 liquidityEthUsdc = IVaultMath(vaultMath)._positionLiquidityEthUsdc();
+        uint128 liquidityOsqthEth = IVaultMath(vaultMath)._positionLiquidityEthOsqth();
 
-        registry.getVaultMath()._burnAndCollect(
+        IVaultMath(vaultMath)._burnAndCollect(
             Constants.poolEthUsdc,
             params.boundaries.ethUsdcLower,
             params.boundaries.ethUsdcUpper,
             liquidityEthUsdc
         );
 
-        registry.getVaultMath()._burnAndCollect(
+        IVaultMath(vaultMath)._burnAndCollect(
             Constants.poolEthOsqth,
             params.boundaries.osqthEthLower,
             params.boundaries.osqthEthUpper,
@@ -137,30 +139,30 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
 
         if (params.isPriceInc) {
             //pull in tokens from sender
-            Constants.osqth.transferFrom(_keeper, address(registry.getVaultTreasury()), params.deltaOsqth.add(10));
-            registry.getVaultTreasury().transfer(Constants.usdc, _keeper, params.deltaUsdc.sub(10));
-            registry.getVaultTreasury().transfer(Constants.weth, _keeper, params.deltaEth.sub(10));
+            Constants.osqth.transferFrom(_keeper, address(IVaultTreasury(vaultTreasury)), params.deltaOsqth.add(10));
+            IVaultTreasury(vaultTreasury).transfer(Constants.usdc, _keeper, params.deltaUsdc.sub(10));
+            IVaultTreasury(vaultTreasury).transfer(Constants.weth, _keeper, params.deltaEth.sub(10));
         } else {
-            Constants.weth.transferFrom(_keeper, address(registry.getVaultTreasury()), params.deltaEth.add(10));
-            Constants.usdc.transferFrom(_keeper, address(registry.getVaultTreasury()), params.deltaUsdc.add(10));
-            registry.getVaultTreasury().transfer(Constants.osqth, _keeper, params.deltaOsqth.sub(10));
+            Constants.weth.transferFrom(_keeper, address(IVaultTreasury(vaultTreasury)), params.deltaEth.add(10));
+            Constants.usdc.transferFrom(_keeper, address(IVaultTreasury(vaultTreasury)), params.deltaUsdc.add(10));
+            IVaultTreasury(vaultTreasury).transfer(Constants.osqth, _keeper, params.deltaOsqth.sub(10));
         }
 
-        registry.getVaultTreasury()._mintLiquidity(
+        IVaultTreasury(vaultTreasury).mintLiquidity(
             Constants.poolEthUsdc,
             params.boundaries.ethUsdcLower,
             params.boundaries.ethUsdcUpper,
             params.liquidityEthUsdc
         );
 
-        registry.getVaultTreasury()._mintLiquidity(
+        IVaultTreasury(vaultTreasury).mintLiquidity(
             Constants.poolEthOsqth,
             params.boundaries.osqthEthLower,
             params.boundaries.osqthEthUpper,
             params.liquidityOsqthEth
         );
 
-        registry.getVaultMath().setTotalAmountsBoundaries(
+        IVaultMath(vaultMath).setTotalAmountsBoundaries(
             params.boundaries.ethUsdcLower,
             params.boundaries.ethUsdcUpper,
             params.boundaries.osqthEthLower,

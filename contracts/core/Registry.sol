@@ -3,18 +3,10 @@
 pragma solidity =0.8.4;
 pragma abicoder v2;
 
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IVault, IAuction} from "../interfaces/IVault.sol";
 import {IRegistry} from "../interfaces/IRegistry.sol";
-import {SharedEvents} from "../libraries/SharedEvents.sol";
-import {Constants} from "../libraries/Constants.sol";
-import {PRBMathUD60x18} from "../libraries/math/PRBMathUD60x18.sol";
 import {Vault} from "./Vault.sol";
 import {VaultMath} from "./VaultMath.sol";
+import {VaultTreasury} from "./VaultTreasury.sol";
 
 import "hardhat/console.sol";
 
@@ -63,12 +55,10 @@ contract Registry is IRegistry {
         VaultTreasury _vaultTreasury = new VaultTreasury();
         _vaultTreasury.addKeeper(vaultMath);
         _vaultTreasury.addKeeper(vault);
-
         vaultTreasury = address(_vaultTreasury);
 
         _vault.updateComponents();
         _vaultMath.updateComponents();
-        _vaultTreasury.updateComponents();
     }
 
     //@dev governance
@@ -77,11 +67,20 @@ contract Registry is IRegistry {
     address vaultTreasury;
     address vaultMath;
 
-    function getComponents() external view returns (address, address, address) {
-        return (
-            vault,
-            vaultMath,
-            vaultTreasury
-        );
+    function getGovernance() external view override returns (address) {
+        return governance;
+    }
+
+    function getComponents()
+        external
+        view
+        override
+        returns (
+            address,
+            address,
+            address
+        )
+    {
+        return (vault, vaultMath, vaultTreasury);
     }
 }

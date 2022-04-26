@@ -14,6 +14,8 @@ import "../libraries/SharedEvents.sol";
 import "../libraries/Constants.sol";
 import {PRBMathUD60x18} from "../libraries/math/PRBMathUD60x18.sol";
 
+import {IVaultTreasury} from "../interfaces/IVaultTreasury.sol";
+
 import "./VaultParams.sol";
 
 import "hardhat/console.sol";
@@ -56,6 +58,14 @@ contract VaultMath is VaultParams, ReentrancyGuard {
             _governance
         )
     {}
+
+    function _pokeEthUsdc() external {
+        _poke(address(Constants.poolEthUsdc), orderEthUsdcLower, orderEthUsdcUpper);
+    }
+
+    function _pokeEthOsqth() external {
+        _poke(address(Constants.poolEthOsqth), orderOsqthEthLower, orderOsqthEthUpper);
+    }
 
     /**
      * @dev Do zero-burns to poke a position on Uniswap so earned fees are
@@ -608,6 +618,25 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         uint256 osqthEthPrice
     ) internal pure returns (uint256) {
         return (amountOsqth.mul(osqthEthPrice) + amountEth).mul(ethUsdcPrice) + amountUsdc.mul(1e30);
+    }
+
+    /**
+     * @notice Used to collect accumulated protocol fees.
+     */
+    function collectProtocol(
+        uint256 amountUsdc,
+        uint256 amountEth,
+        uint256 amountOsqth,
+        address to
+    ) external onlyGovernance {
+        //TODO: Improve this part
+        accruedFeesUsdc = accruedFeesUsdc.sub(amountUsdc);
+        accruedFeesEth = accruedFeesEth.sub(amountEth);
+        accruedFeesOsqth = accruedFeesOsqth.sub(amountOsqth);
+
+        if (amountUsdc > 0) IVaultTreasury(vaultTreasury).transfer(Constants.usdc, to, amountUsdc);
+        if (amountEth > 0) IVaultTreasury(vaultTreasury).transfer(Constants.weth, to, amountEth);
+        if (amountOsqth > 0) IVaultTreasury(vaultTreasury).transfer(Constants.osqth, to, amountOsqth);
     }
 
     /// @dev Rounds tick down towards negative infinity so that it's a multiple

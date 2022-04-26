@@ -11,5 +11,12 @@ import "./IVaultMath.sol";
 interface IRegistry {
     function getGovernance() external view returns (address);
 
-    function getComponents() external view returns (address, address, address);
+    function getComponents()
+        external
+        view
+        returns (
+            address,
+            address,
+            address
+        );
 }

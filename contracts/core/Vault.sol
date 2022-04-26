@@ -9,6 +9,8 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IVault, IAuction} from "../interfaces/IVault.sol";
+import {IVaultMath} from "../interfaces/IVaultMath.sol";
+import {IVaultTreasury} from "../interfaces/IVaultTreasury.sol";
 
 import {SharedEvents} from "../libraries/SharedEvents.sol";
 import {Constants} from "../libraries/Constants.sol";
@@ -17,9 +19,11 @@ import {VaultAuction} from "./VaultAuction.sol";
 
 import "hardhat/console.sol";
 
-contract Vault is IVault, IERC20, ReentrancyGuard, VaultAuction {
+contract Vault is IVault, IERC20, ERC20, ReentrancyGuard, VaultAuction {
     using PRBMathUD60x18 for uint256;
     using SafeERC20 for IERC20;
+
+    address public governance;
 
     /**
      * @notice strategy constructor
@@ -56,7 +60,7 @@ contract Vault is IVault, IERC20, ReentrancyGuard, VaultAuction {
         )
     {
         governance = _governance;
-    }    
+    }
 
     function setGovernance(address _governance) external onlyGovernance {
         governance = _governance;
@@ -79,12 +83,11 @@ contract Vault is IVault, IERC20, ReentrancyGuard, VaultAuction {
         require(_amountEth > 0 || (_amountUsdc > 0 || _amountOsqth > 0), "ZA"); //Zero amount
         require(to != address(0) && to != address(this), "WA"); //Wrong address
 
-        //Poke positions so vault's current holdings are up to date
-        vaultMath._poke(address(Constants.poolEthUsdc), vaultMath.orderEthUsdcLower, vaultMath.orderEthUsdcUpper);
-        vaultMath._poke(address(Constants.poolEthOsqth), vaultMath.orderOsqthEthLower, vaultMath.orderOsqthEthUpper);
+        IVaultMath(vaultMath)._pokeEthUsdc();
+        IVaultMath(vaultMath)._pokeEthOsqth();
 
         //Calculate shares to mint
-        (uint256 _shares, uint256 amountEth, uint256 amountUsdc, uint256 amountOsqth) = vaultMath
+        (uint256 _shares, uint256 amountEth, uint256 amountUsdc, uint256 amountOsqth) = IVaultMath(vaultMath)
             ._calcSharesAndAmounts(_amountEth, _amountUsdc, _amountOsqth);
 
         require(amountEth >= _amountEthMin, "Amount ETH min");
@@ -92,13 +95,13 @@ contract Vault is IVault, IERC20, ReentrancyGuard, VaultAuction {
         require(amountOsqth >= _amountOsqthMin, "Amount oSQTH min");
 
         //Pull in tokens
-        if (amountEth > 0) Constants.weth.transferFrom(msg.sender, address(vaultTreasury), amountEth);
-        if (amountUsdc > 0) Constants.usdc.transferFrom(msg.sender, address(vaultTreasury), amountUsdc);
-        if (amountOsqth > 0) Constants.osqth.transferFrom(msg.sender, address(vaultTreasury), amountOsqth);
+        if (amountEth > 0) Constants.weth.transferFrom(msg.sender, vaultTreasury, amountEth);
+        if (amountUsdc > 0) Constants.usdc.transferFrom(msg.sender, vaultTreasury, amountUsdc);
+        if (amountOsqth > 0) Constants.osqth.transferFrom(msg.sender, vaultTreasury, amountOsqth);
 
         //Mint shares to user
         _mint(to, _shares);
-        require(totalSupply() <= cap, "Cap is reached");
+        require(totalSupply() <= IVaultMath(vaultMath).getCap(), "Cap is reached");
 
         emit SharedEvents.Deposit(to, _shares);
         return _shares;
@@ -124,7 +127,7 @@ contract Vault is IVault, IERC20, ReentrancyGuard, VaultAuction {
 
         _burn(msg.sender, shares);
 
-        (uint256 amountEth, uint256 amountUsdc, uint256 amountOsqth) = registry.getVaultMath()._getWithdrawAmounts(
+        (uint256 amountEth, uint256 amountUsdc, uint256 amountOsqth) = IVaultMath(vaultMath)._getWithdrawAmounts(
             shares,
             oldTotalSupply
         );
@@ -136,27 +139,10 @@ contract Vault is IVault, IERC20, ReentrancyGuard, VaultAuction {
         //send tokens to user
         //send tokens to user
 
-        if (amountEth > 0) vaultTreasury.transfer(Constants.weth, msg.sender, amountEth);
-        if (amountUsdc > 0) vaultTreasury.transfer(Constants.usdc, msg.sender, amountUsdc);
-        if (amountOsqth > 0) vaultTreasury.transfer(Constants.osqth, msg.sender, amountOsqth);
+        if (amountEth > 0) IVaultTreasury(vaultTreasury).transfer(Constants.weth, msg.sender, amountEth);
+        if (amountUsdc > 0) IVaultTreasury(vaultTreasury).transfer(Constants.usdc, msg.sender, amountUsdc);
+        if (amountOsqth > 0) IVaultTreasury(vaultTreasury).transfer(Constants.osqth, msg.sender, amountOsqth);
 
         emit SharedEvents.Withdraw(msg.sender, shares, amountEth, amountUsdc, amountOsqth);
-    }
-
-    /**
-     * @notice Used to collect accumulated protocol fees.
-     */
-    function collectProtocol(
-        uint256 amountUsdc,
-        uint256 amountEth,
-        uint256 amountOsqth,
-        address to
-    ) external onlyGovernance {
-        accruedFeesUsdc = accruedFeesUsdc.sub(amountUsdc);
-        accruedFeesEth = accruedFeesEth.sub(amountEth);
-        accruedFeesOsqth = accruedFeesOsqth.sub(amountOsqth);
-        if (amountUsdc > 0) vaultTreasury.transfer(Constants.usdc, to, amountUsdc);
-        if (amountEth > 0) vaultTreasury.transfer(Constants.weth, to, amountEth);
-        if (amountOsqth > 0) vaultTreasury.transfer(Constants.osqth, to, amountOsqth);
     }
 }

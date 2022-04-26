@@ -3,7 +3,13 @@
 pragma solidity =0.8.4;
 pragma abicoder v2;
 
-interface IVaultMath {
+import "../libraries/Constants.sol";
+
+interface IVaultParams {
+    function getCap() external returns (uint256);
+}
+
+interface IVaultMath is IVaultParams {
     function _calcSharesAndAmounts(
         uint256 _amountEth,
         uint256 _amountUsdc,
@@ -30,4 +36,48 @@ interface IVaultMath {
         int24 tickLower,
         int24 tickUpper
     ) external;
+
+    function _pokeEthUsdc() external;
+
+    function _pokeEthOsqth() external;
+
+    function setTotalAmountsBoundaries(
+        int24 _orderEthUsdcLower,
+        int24 _orderEthUsdcUpper,
+        int24 _orderOsqthEthLower,
+        int24 _orderOsqthEthUpper
+    ) external;
+
+    function getTotalAmountsBoundaries()
+        external
+        returns (
+            int24,
+            int24,
+            int24,
+            int24
+        );
+
+    function isTimeRebalance() external returns (bool, uint256);
+
+    function _isPriceRebalance(uint256 _auctionTriggerTime) external returns (bool);
+
+    function _getAuctionParams(uint256 _auctionTriggerTime) external returns (Constants.AuctionParams memory);
+
+    function _positionLiquidityEthUsdc() external returns (uint128);
+
+    function _positionLiquidityEthOsqth() external returns (uint128);
+
+    function _burnAndCollect(
+        address pool,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 liquidity
+    )
+        external
+        returns (
+            uint256 burned0,
+            uint256 burned1,
+            uint256 feesToVault0,
+            uint256 feesToVault1
+        );
 }
