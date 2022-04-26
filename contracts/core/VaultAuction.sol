@@ -6,7 +6,6 @@ pragma abicoder v2;
 import {IVaultTreasury} from "../interfaces/IVaultTreasury.sol";
 import {IVaultMath} from "../interfaces/IVaultMath.sol";
 import {IAuction} from "../interfaces/IVault.sol";
-import {IRegistry} from "../interfaces/IRegistry.sol";
 
 import {SharedEvents} from "../libraries/SharedEvents.sol";
 import {Faucet} from "../libraries/Faucet.sol";
@@ -61,7 +60,7 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
 
         require(isTimeRebalanceAllowed, "Time rebalance not allowed");
 
-        _rebalance(keeper, auctionTriggerTime, amountEth, amountUsdc, amountOsqth);
+        _rebalance(keeper, auctionTriggerTime);
 
         emit SharedEvents.TimeRebalance(keeper, auctionTriggerTime, amountEth, amountUsdc, amountOsqth);
     }
@@ -85,7 +84,7 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
         //check if rebalancing based on price threshold is allowed
         require(IVaultMath(vaultMath)._isPriceRebalance(_auctionTriggerTime), "Price rebalance not allowed");
 
-        _rebalance(keeper, _auctionTriggerTime, _amountEth, _amountUsdc, _amountOsqth);
+        _rebalance(keeper, _auctionTriggerTime);
 
         emit SharedEvents.PriceRebalance(keeper, _amountEth, _amountUsdc, _amountOsqth);
     }
@@ -94,17 +93,8 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
      * @notice rebalancing function to adjust proportion of tokens
      * @param keeper keeper address
      * @param _auctionTriggerTime timestamp when auction started
-     * @param _amountEth amount of wETH to buy (strategy sell wETH both in sell and buy auction)
-     * @param _amountUsdc amount of USDC to buy or sell (depending if price increased or decreased)
-     * @param _amountOsqth amount of oSQTH to buy or sell (depending if price increased or decreased)
      */
-    function _rebalance(
-        address keeper,
-        uint256 _auctionTriggerTime,
-        uint256 _amountEth,
-        uint256 _amountUsdc,
-        uint256 _amountOsqth
-    ) internal {
+    function _rebalance(address keeper, uint256 _auctionTriggerTime) internal {
         Constants.AuctionParams memory params = IVaultMath(vaultMath)._getAuctionParams(_auctionTriggerTime);
 
         _executeAuction(keeper, params);
@@ -139,22 +129,15 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
 
         if (params.isPriceInc) {
             //pull in tokens from sender
-            IVaultTreasury(vaultTreasury).transferFrom(
-                Constants.osqth,
-                _keeper,
-                vaultTreasury,
-                params.deltaOsqth.add(10)
-            );
+            Constants.osqth.transferFrom(_keeper, vaultTreasury, params.deltaOsqth.add(10));
             IVaultTreasury(vaultTreasury).transfer(Constants.usdc, _keeper, params.deltaUsdc.sub(10));
             IVaultTreasury(vaultTreasury).transfer(Constants.weth, _keeper, params.deltaEth.sub(10));
         } else {
-            IVaultTreasury(vaultTreasury).transferFrom(Constants.weth, _keeper, vaultTreasury, params.deltaEth.add(10));
-            IVaultTreasury(vaultTreasury).transferFrom(
-                Constants.usdc,
-                _keeper,
-                vaultTreasury,
-                params.deltaUsdc.add(10)
-            );
+            console.log(params.deltaEth.add(10));
+            console.log(params.deltaUsdc.add(10));
+            console.log(params.deltaOsqth.sub(10));
+            Constants.weth.transferFrom(_keeper, vaultTreasury, params.deltaEth.add(10));
+            Constants.usdc.transferFrom(_keeper, vaultTreasury, params.deltaUsdc.add(10));
             IVaultTreasury(vaultTreasury).transfer(Constants.osqth, _keeper, params.deltaOsqth.sub(10));
         }
 

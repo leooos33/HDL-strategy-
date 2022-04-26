@@ -5,8 +5,6 @@ pragma abicoder v2;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {IUniswapV3MintCallback} from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
-import {IUniswapV3SwapCallback} from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol";
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {PositionKey} from "@uniswap/v3-periphery/contracts/libraries/PositionKey.sol";
 
@@ -84,7 +82,7 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         (uint128 liquidity, , , , ) = _position(pool, tickLower, tickUpper);
 
         if (liquidity > 0) {
-            IUniswapV3Pool(pool).burn(tickLower, tickUpper, 0);
+            IVaultTreasury(vaultTreasury).burn(pool, tickLower, tickUpper, 0);
         }
     }
 
@@ -114,7 +112,7 @@ contract VaultMath is VaultParams, ReentrancyGuard {
             uint128
         )
     {
-        bytes32 positionKey = PositionKey.compute(address(this), tickLower, tickUpper);
+        bytes32 positionKey = PositionKey.compute(vaultTreasury, tickLower, tickUpper);
         return IUniswapV3Pool(pool).positions(positionKey);
     }
 
@@ -316,16 +314,10 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         )
     {
         if (liquidity > 0) {
-            (burned0, burned1) = IUniswapV3Pool(pool).burn(tickLower, tickUpper, liquidity); // TODOL!!!!!!
+            (burned0, burned1) = IVaultTreasury(vaultTreasury).burn(pool, tickLower, tickUpper, liquidity);
         }
 
-        (uint256 collect0, uint256 collect1) = IUniswapV3Pool(pool).collect(
-            address(this),
-            tickLower,
-            tickUpper,
-            type(uint128).max,
-            type(uint128).max
-        );
+        (uint256 collect0, uint256 collect1) = IVaultTreasury(vaultTreasury).collect(pool, tickLower, tickUpper);
 
         feesToVault0 = collect0.sub(burned0);
         feesToVault1 = collect1.sub(burned1);

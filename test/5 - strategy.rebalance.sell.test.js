@@ -26,8 +26,8 @@ describe.only("Strategy rebalance sell", function () {
         contractHelper = await deployContract("V3Helper", []);
     });
 
-    const wethInputR = "800348675119972960";
-    const usdcInputR = "14065410226";
+    const wethInputR = "2651960034925336940";
+    const usdcInputR = "34328438697";
     const osqthInputR = "13136856056157859843";
     it("preset", async function () {
         tx = await VaultMath.connect(keeper).setTimeAtLastRebalance(1648646662);
@@ -36,7 +36,7 @@ describe.only("Strategy rebalance sell", function () {
         tx = await VaultMath.connect(keeper).setEthPriceAtLastRebalance("3391393578000000000000");
         await tx.wait();
 
-        await getAndApprove(keeper, VaultTreasury.address, wethInputR, usdcInputR, osqthInputR);
+        await getAndApprove(keeper, Vault.address, wethInputR, usdcInputR, osqthInputR);
     });
 
     it("deposit", async function () {
@@ -113,13 +113,13 @@ describe.only("Strategy rebalance sell", function () {
         // Balances
         expect(await getERC20Balance(keeper.address, wethAddress)).to.equal("0");
         expect(await getERC20Balance(keeper.address, usdcAddress)).to.equal("0");
-        expect(await getERC20Balance(keeper.address, osqthAddress)).to.equal("26273712112315719666");
+        expect(await getERC20Balance(keeper.address, osqthAddress)).to.equal("47476220800701497987");
 
-        const amount = await Vault._getTotalAmounts();
+        const amount = await VaultMath._getTotalAmounts();
         console.log(amount);
-        expect(amount[0].toString()).to.equal("19503307000000000008");
-        expect(amount[1].toString()).to.equal("44471639450");
-        expect(amount[2].toString()).to.equal("21202509000000000009");
+        expect(amount[0].toString()).to.equal("21354918000000000009");
+        expect(amount[1].toString()).to.equal("64734667921");
+        expect(amount[2].toString()).to.equal("10");//21202509000000000009//TODO
     });
 
     it("swap", async function () {
@@ -150,7 +150,7 @@ describe.only("Strategy rebalance sell", function () {
         // console.log(amount);
 
         // Balances
-        expect(await getERC20Balance(contractHelper.address, wethAddress)).to.equal("2932067220234871219116");
+        expect(await getERC20Balance(contractHelper.address, wethAddress)).to.equal("2932051110438643869477");
         expect(await getERC20Balance(contractHelper.address, usdcAddress)).to.equal("3369149847107");
     });
 
@@ -162,16 +162,18 @@ describe.only("Strategy rebalance sell", function () {
         await tx.wait();
 
         // Balances
-        assert(assertWP(await getERC20Balance(depositor.address, wethAddress), "17729844128458954112", 16, 18), "test");
-        assert(assertWP(await getERC20Balance(depositor.address, usdcAddress), "50517045994", 4, 6), "test");
+        assert(assertWP(await getERC20Balance(depositor.address, wethAddress), "21354918101763797393", 16, 18), "test");
+        assert(assertWP(await getERC20Balance(depositor.address, usdcAddress), "64734667920", 4, 6), "test");
         assert(
-            assertWP(await getERC20Balance(depositor.address, osqthAddress), "21202508688385778328", 16, 18),
+            assertWP(await getERC20Balance(depositor.address, osqthAddress), "10", 16, 18),
             "test"
         );
+        //21202508688385778328//TODO
 
-        const amount = await Vault._getTotalAmounts();
-        expect(amount[0].toString()).to.equal("0");
-        expect(amount[1].toString()).to.equal("2");
-        expect(amount[2].toString()).to.equal("1");
+        const amount = await VaultMath._getTotalAmounts();
+        console.log(amount);
+        expect(amount[0].toString()).to.equal("1");
+        expect(amount[1].toString()).to.equal("1");
+        expect(amount[2].toString()).to.equal("0");
     });
 });

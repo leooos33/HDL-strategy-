@@ -13,10 +13,11 @@ import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Po
 import {SharedEvents} from "../libraries/SharedEvents.sol";
 import {Faucet} from "../libraries/Faucet.sol";
 import {Constants} from "../libraries/Constants.sol";
+import {IVaultTreasury} from "../interfaces/IVaultTreasury.sol";
 
 import "hardhat/console.sol";
 
-contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback, Faucet {
+contract VaultTreasury is IVaultTreasury, ReentrancyGuard, IUniswapV3MintCallback, Faucet {
     using SafeERC20 for IERC20;
 
     mapping(address => bool) keepers;
@@ -28,16 +29,17 @@ contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback, Faucet {
     function burn(
         address pool,
         int24 tickLower,
-        int24 tickUpper
-    ) external onlyKeepers {
-        IUniswapV3Pool(pool).burn(tickLower, tickUpper, 0);
+        int24 tickUpper,
+        uint128 liquidity
+    ) external override onlyKeepers returns (uint256, uint256) {
+        return IUniswapV3Pool(pool).burn(tickLower, tickUpper, liquidity);
     }
 
     function collect(
         address pool,
         int24 tickLower,
         int24 tickUpper
-    ) external onlyKeepers returns (uint256 collect0, uint256 collect1) {
+    ) external override onlyKeepers returns (uint256 collect0, uint256 collect1) {
         address recipient = address(this);
 
         (collect0, collect1) = IUniswapV3Pool(pool).collect(
@@ -54,7 +56,7 @@ contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback, Faucet {
         int24 tickLower,
         int24 tickUpper,
         uint128 liquidity
-    ) external onlyKeepers {
+    ) external override onlyKeepers {
         if (liquidity > 0) {
             address token0 = pool == Constants.poolEthUsdc ? address(Constants.usdc) : address(Constants.weth);
             address token1 = pool == Constants.poolEthUsdc ? address(Constants.weth) : address(Constants.osqth);
@@ -68,17 +70,8 @@ contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback, Faucet {
         IERC20 token,
         address recipient,
         uint256 amount
-    ) external onlyKeepers {
+    ) external override onlyKeepers {
         token.transfer(recipient, amount);
-    }
-
-    function transferFrom(
-        IERC20 token,
-        address holder,
-        address recipient,
-        uint256 amount
-    ) external onlyKeepers {
-        token.transferFrom(holder, recipient, amount);
     }
 
     function uniswapV3MintCallback(

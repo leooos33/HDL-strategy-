@@ -9,14 +9,14 @@ interface IVaultTreasury {
     function burn(
         address pool,
         int24 tickLower,
-        int24 tickUpper
-    ) external;
+        int24 tickUpper,
+        uint128 liquidity
+    ) external returns (uint256, uint256);
 
     function collect(
         address pool,
         int24 tickLower,
-        int24 tickUpper,
-        uint128 liquidity
+        int24 tickUpper
     ) external returns (uint256 collect0, uint256 collect1);
 
     function mintLiquidity(
@@ -28,13 +28,6 @@ interface IVaultTreasury {
 
     function transfer(
         IERC20 token,
-        address recipient,
-        uint256 amount
-    ) external;
-
-    function transferFrom(
-        IERC20 token,
-        address holder,
         address recipient,
         uint256 amount
     ) external;

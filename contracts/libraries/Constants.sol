@@ -4,7 +4,7 @@ pragma solidity =0.8.4;
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IOracle} from "../interfaces/IOracle.sol";
+import {IOracle} from "./uniswap/IOracle.sol";
 
 library Constants {
     //@dev ETH-USDC Uniswap pool
