@@ -386,6 +386,7 @@ contract VaultMath is VaultParams, ReentrancyGuard {
             );
         }
 
+        console.log("priceMultiplier %s", priceMultiplier);
         return priceMultiplier;
     }
 

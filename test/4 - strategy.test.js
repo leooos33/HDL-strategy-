@@ -80,6 +80,11 @@ describe("Strategy deposit", function () {
         expect(await getERC20Balance(depositor.address, usdcAddress)).to.equal("30406438207");
         expect(await getERC20Balance(depositor.address, osqthAddress)).to.equal("34339600759864942530");
 
+        // Balances
+        expect(await getERC20Balance(VaultTreasury.address, wethAddress)).to.equal("0");
+        expect(await getERC20Balance(VaultTreasury.address, usdcAddress)).to.equal("1");
+        expect(await getERC20Balance(VaultTreasury.address, osqthAddress)).to.equal("0");
+
         // Shares
         expect(await getERC20Balance(depositor.address, Vault.address)).to.equal("0");
     });

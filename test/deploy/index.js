@@ -18,6 +18,10 @@ const hardhatDeploy = async (governance, params) => {
     const Vault = await deployContract("Vault", [...params, governance.address]);
     const VaultMath = await deployContract("VaultMath", [...params, governance.address]);
     const VaultTreasury = await deployContract("VaultTreasury", []);
+    console.log(UniswapMath.address);
+    console.log(Vault.address);
+    console.log(VaultMath.address);
+    console.log(VaultTreasury.address);
 
     {
         let tx;

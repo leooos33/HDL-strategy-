@@ -12,9 +12,8 @@ describe.only("Strategy rebalance sell", function () {
         const signers = await ethers.getSigners();
         governance = signers[5];
         depositor = signers[6];
-        depositor = signers[7];
-        keeper = signers[8];
-        swaper = signers[9];
+        keeper = signers[7];
+        swaper = signers[8];
     });
 
     let Vault, VaultMath, VaultTreasury, contractHelper, tx;

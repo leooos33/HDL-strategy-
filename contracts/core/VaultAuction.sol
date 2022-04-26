@@ -127,8 +127,12 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
             liquidityOsqthEth
         );
 
+        console.log("isPriceInc %s", params.isPriceInc);
         if (params.isPriceInc) {
             //pull in tokens from sender
+            console.log(params.deltaEth.sub(10));
+            console.log(params.deltaUsdc.sub(10));
+            console.log(params.deltaOsqth.add(10));
             Constants.osqth.transferFrom(_keeper, vaultTreasury, params.deltaOsqth.add(10));
             IVaultTreasury(vaultTreasury).transfer(Constants.usdc, _keeper, params.deltaUsdc.sub(10));
             IVaultTreasury(vaultTreasury).transfer(Constants.weth, _keeper, params.deltaEth.sub(10));
