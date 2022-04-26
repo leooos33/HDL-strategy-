@@ -9,8 +9,6 @@ import "./IVaultTreasury.sol";
 import "./IVaultMath.sol";
 
 interface IRegistry {
-    function getGovernance() external view returns (address);
-
     function getComponents()
         external
         view

@@ -6,13 +6,12 @@ import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Po
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Faucet} from "../libraries/Faucet.sol";
-import {IVaultParams} from "../interfaces/IVaultMath.sol";
 
 import "../libraries/Constants.sol";
 
 import "hardhat/console.sol";
 
-abstract contract VaultParams is Faucet, IVaultParams {
+abstract contract VaultParams is Faucet {
     //@dev Uniswap pools tick spacing
     int24 public immutable tickSpacingEthUsdc;
     int24 public immutable tickSpacingOsqthEth;
@@ -23,7 +22,7 @@ abstract contract VaultParams is Faucet, IVaultParams {
     //@dev max amount of wETH that strategy accept for deposit
     uint256 public cap;
 
-    function getCap() external override returns (uint256) {
+    function getCap() external view returns (uint256) {
         return cap;
     }
 

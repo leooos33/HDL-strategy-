@@ -6,9 +6,6 @@ pragma abicoder v2;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IRegistry} from "../interfaces/IRegistry.sol";
-import {IVaultMath} from "../interfaces/IVaultMath.sol";
-import {IVaultTreasury} from "../interfaces/IVaultTreasury.sol";
-import {IVault} from "../interfaces/IVault.sol";
 
 interface IFaucet {
     function updateComponents() external;

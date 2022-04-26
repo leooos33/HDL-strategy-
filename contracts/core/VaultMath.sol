@@ -255,7 +255,7 @@ contract VaultMath is VaultParams, ReentrancyGuard {
     }
 
     function _getBalance(IERC20 token) internal view returns (uint256) {
-        return token.balanceOf(address(this)); //? accrued protocol fees
+        return token.balanceOf(vaultTreasury); //? accrued protocol fees
     }
 
     function _amountsForLiquidity(

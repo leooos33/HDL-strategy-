@@ -4,18 +4,18 @@ pragma solidity =0.8.4;
 pragma abicoder v2;
 
 import "../libraries/Constants.sol";
+import {IFaucet} from "../libraries/Faucet.sol";
 
-interface IVaultParams {
+interface IVaultMath is IFaucet {
     function getCap() external returns (uint256);
-}
 
-interface IVaultMath is IVaultParams {
     function _calcSharesAndAmounts(
         uint256 _amountEth,
         uint256 _amountUsdc,
         uint256 _amountOsqth
     )
         external
+        view
         returns (
             uint256,
             uint256,

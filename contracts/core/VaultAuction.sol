@@ -40,7 +40,9 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
         uint256 _protocolFee,
         int24 _maxTDEthUsdc,
         int24 _maxTDOsqthEth
-    ) Faucet(msg.sender) {}
+    ) Faucet(msg.sender) {
+        // console.log("! %s", msg.sender);
+    }
 
     /**
      * @notice strategy rebalancing based on time threshold
