@@ -10,7 +10,7 @@ const deploymentParams = [
     "1100000000000000000",
     "0",
     "1000",
-    "0"
+    "1000"
 ];
 
 const hardhatDeploy = async (governance, params) => {
@@ -49,5 +49,5 @@ const deployContract = async (name, params) => {
 }
 
 module.exports = {
-    deploymentParams, hardhatDeploy,
+    deploymentParams, hardhatDeploy, deployContract
 };

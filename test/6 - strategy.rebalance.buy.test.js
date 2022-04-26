@@ -3,6 +3,7 @@ const { ethers } = require("hardhat");
 const { wethAddress, osqthAddress, usdcAddress } = require("./common");
 const { utils } = ethers;
 const { resetFork, getUSDC, getERC20Balance, getAndApprove } = require("./helpers");
+const { hardhatDeploy, deploymentParams } = require('./deploy');
 
 describe("Strategy rebalance buy", function () {
     let contract, library, contractHelper, tx;

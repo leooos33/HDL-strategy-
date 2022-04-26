@@ -307,7 +307,7 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         int24 tickUpper,
         uint128 liquidity
     )
-        internal
+        public
         returns (
             uint256 burned0,
             uint256 burned1,
@@ -417,7 +417,7 @@ contract VaultMath is VaultParams, ReentrancyGuard {
         return priceMultiplier;
     }
 
-    function _getAuctionParams(uint256 _auctionTriggerTime) internal view returns (Constants.AuctionParams memory) {
+    function _getAuctionParams(uint256 _auctionTriggerTime) external view returns (Constants.AuctionParams memory) {
         (uint256 ethUsdcPrice, uint256 osqthEthPrice) = _getPrices();
 
         bool _isPriceInc = _checkAuctionType(ethUsdcPrice);

@@ -139,12 +139,22 @@ contract VaultAuction is IAuction, Faucet, ReentrancyGuard {
 
         if (params.isPriceInc) {
             //pull in tokens from sender
-            Constants.osqth.transferFrom(_keeper, address(IVaultTreasury(vaultTreasury)), params.deltaOsqth.add(10));
+            IVaultTreasury(vaultTreasury).transferFrom(
+                Constants.osqth,
+                _keeper,
+                vaultTreasury,
+                params.deltaOsqth.add(10)
+            );
             IVaultTreasury(vaultTreasury).transfer(Constants.usdc, _keeper, params.deltaUsdc.sub(10));
             IVaultTreasury(vaultTreasury).transfer(Constants.weth, _keeper, params.deltaEth.sub(10));
         } else {
-            Constants.weth.transferFrom(_keeper, address(IVaultTreasury(vaultTreasury)), params.deltaEth.add(10));
-            Constants.usdc.transferFrom(_keeper, address(IVaultTreasury(vaultTreasury)), params.deltaUsdc.add(10));
+            IVaultTreasury(vaultTreasury).transferFrom(Constants.weth, _keeper, vaultTreasury, params.deltaEth.add(10));
+            IVaultTreasury(vaultTreasury).transferFrom(
+                Constants.usdc,
+                _keeper,
+                vaultTreasury,
+                params.deltaUsdc.add(10)
+            );
             IVaultTreasury(vaultTreasury).transfer(Constants.osqth, _keeper, params.deltaOsqth.sub(10));
         }
 

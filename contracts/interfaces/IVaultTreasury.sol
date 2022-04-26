@@ -31,4 +31,11 @@ interface IVaultTreasury {
         address recipient,
         uint256 amount
     ) external;
+
+    function transferFrom(
+        IERC20 token,
+        address holder,
+        address recipient,
+        uint256 amount
+    ) external;
 }

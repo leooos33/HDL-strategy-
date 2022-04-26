@@ -12,12 +12,12 @@ describe("Strategy deposit", function () {
         depositor = signers[6];
     });
 
-    let Vault, VaultMath, tx;
+    let Vault, VaultMath, VaultTreasury, tx;
     it("Should deploy contract", async function () {
         await resetFork();
 
         const params = [...deploymentParams];
-        params[8] = "1000";
+        params[6] = "1000";
 
         [Vault, VaultMath, VaultTreasury] = await hardhatDeploy(governance, params);
     });

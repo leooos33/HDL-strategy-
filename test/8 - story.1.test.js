@@ -4,6 +4,7 @@ const { ethers } = require("hardhat");
 const { wethAddress, osqthAddress, usdcAddress } = require("./common");
 const { utils } = ethers;
 const { getAndApprove, resetFork, getUSDC, getERC20Balance, assertWP } = require("./helpers");
+const { hardhatDeploy, deploymentParams } = require('./deploy');
 
 describe("Story about several swaps id 1", function () {
     let contract, library, contractHelper, tx;

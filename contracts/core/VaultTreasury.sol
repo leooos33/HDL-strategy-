@@ -72,6 +72,15 @@ contract VaultTreasury is ReentrancyGuard, IUniswapV3MintCallback, Faucet {
         token.transfer(recipient, amount);
     }
 
+    function transferFrom(
+        IERC20 token,
+        address holder,
+        address recipient,
+        uint256 amount
+    ) external onlyKeepers {
+        token.transferFrom(holder, recipient, amount);
+    }
+
     function uniswapV3MintCallback(
         uint256 amount0Owed,
         uint256 amount1Owed,
