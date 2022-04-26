@@ -5,10 +5,15 @@ pragma abicoder v2;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IRegistry} from "../interfaces/IRegistry.sol";
+// import {IRegistry} from "../interfaces/IRegistry.sol";
 
 interface IFaucet {
-    function updateComponents() external;
+    // function updateComponents() external;
+    function setComponents(
+        address,
+        address,
+        address
+    ) external;
 }
 
 contract Faucet is IFaucet {
@@ -21,7 +26,15 @@ contract Faucet is IFaucet {
         registry = _registry;
     }
 
-    function updateComponents() public override {
-        (vault, vaultMath, vaultTreasury) = IRegistry(registry).getComponents();
+    // function updateComponents() public override {
+    //     (vault, vaultMath, vaultTreasury) = IRegistry(registry).getComponents();
+    // }
+
+    function setComponents(
+        address _vault,
+        address _vaultMath,
+        address _vaultTreasury
+    ) public override {
+        (vault, vaultMath, vaultTreasury) = (_vault, _vaultMath, _vaultTreasury);
     }
 }
